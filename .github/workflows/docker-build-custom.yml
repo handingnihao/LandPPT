@@ -59,8 +59,8 @@ jobs:
           tags: |
             ${{ env.IMAGE_NAME }}:${{ github.event.inputs.version_tag }}
             ${{ env.IMAGE_NAME }}:latest
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          # 禁用缓存以确保完全重建
+          no-cache: true
       
       # 输出结果
       - name: Build Complete
