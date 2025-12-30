@@ -1,0 +1,72 @@
+# LandPPT Docker Build - Push to idocker1688
+# 手动触发构建并推送到 idocker1688/landppt
+
+name: Build and Push to idocker1688
+
+on:
+  # 仅手动触发
+  workflow_dispatch:
+    inputs:
+      version_tag:
+        description: '版本标签 (例如: v0.1.7)'
+        required: true
+        default: 'v0.1.7'
+        type: string
+
+env:
+  IMAGE_NAME: idocker1688/landppt
+  PLATFORMS: linux/amd64
+
+jobs:
+  build:
+    name: Build and Push Docker Image
+    runs-on: ubuntu-latest
+    
+    steps:
+      # 检出代码
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+      
+      # 清理磁盘空间
+      - name: Free Disk Space
+        run: |
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /usr/local/lib/android
+          sudo rm -rf /opt/ghc
+          sudo rm -rf /opt/hostedtoolcache/CodeQL
+          sudo docker system prune -af
+          df -h
+      
+      # 设置 Docker Buildx
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      
+      # 登录到 Docker Hub
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      
+      # 构建并推送 Docker 镜像
+      - name: Build and Push Docker Image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile
+          platforms: ${{ env.PLATFORMS }}
+          push: true
+          tags: |
+            ${{ env.IMAGE_NAME }}:${{ github.event.inputs.version_tag }}
+            ${{ env.IMAGE_NAME }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      
+      # 输出结果
+      - name: Build Complete
+        run: |
+          echo "### Docker Image Built Successfully! :rocket:" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Image Tags:**" >> $GITHUB_STEP_SUMMARY
+          echo "- \`${{ env.IMAGE_NAME }}:${{ github.event.inputs.version_tag }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- \`${{ env.IMAGE_NAME }}:latest\`" >> $GITHUB_STEP_SUMMARY
